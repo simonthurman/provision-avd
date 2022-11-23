@@ -117,11 +117,11 @@ resource newVMWinRM 'Microsoft.Compute/virtualMachines/extensions@2019-07-01' = 
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [
-        'https://query.prod.cms.rt.microsoft.com/cms/api/am/binary/RWrmXv'
+        'https://github.com/simonthurman/provision-avd/tree/main/Configuration/Configuration.ps1'
       ]
     }
     protectedSettings: {
-      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File ConfigureWinRM.ps1'
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File Configuration.ps1'
     }
   }
 }
