@@ -22,7 +22,41 @@ resource storageAccount 'Microsoft.Storage/storageAccounts@2021-04-01' = {
   properties: {}
 }
 
-resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-04-01' = {
+resource pip 'Microsoft.Network/publicIPAddresses@2021-02-01' = {
+  name: '${virtualMachineName}pip'
+  location: location
+  sku: {
+    name: 'Standard'
+  }
+  properties: {
+    publicIPAllocationMethod: 'Static'
+  }
+}
+
+resource securityGroup 'Microsoft.Network/networkSecurityGroups@2021-02-01' = {
+  name: '${virtualMachineName}nsg'
+  location: location
+  properties: {
+    securityRules: [
+      {
+        name: 'default-allow-rdp'
+        properties: {
+          priority: 1000
+          access: 'Allow'
+          direction: 'Inbound'
+          sourceAddressPrefix: '*'
+          sourcePortRange: '*'
+          destinationAddressPrefix: '*'
+          destinationPortRange: '3389'
+          protocol: 'Tcp'
+        }
+      }
+    ]
+  }
+}
+
+
+resource virtualNetwork 'Microsoft.Network/virtualNetworks@2022-05-01' = {
   name: '${virtualMachineName}vnet'
   location: location
   properties: {
@@ -36,13 +70,16 @@ resource virtualNetwork 'Microsoft.Network/virtualNetworks@2021-04-01' = {
         name: 'default'
         properties: {
           addressPrefix: '10.0.0.0/24'
+          networkSecurityGroup: {
+            id: securityGroup.id
+          }
         }
       }
     ]
   }
 }
 
-resource networkInterface 'Microsoft.Network/networkInterfaces@2021-04-01' = {
+resource networkInterface 'Microsoft.Network/networkInterfaces@2022-05-01' = {
   name: '${virtualMachineName}nic'
   location: location
   properties: {
@@ -54,6 +91,9 @@ resource networkInterface 'Microsoft.Network/networkInterfaces@2021-04-01' = {
             id: resourceId('Microsoft.Network/virtualNetworks/subnets', virtualNetwork.name, 'default')
           }
           privateIPAllocationMethod: 'Dynamic'
+          publicIPAddress: {
+            id: pip.id
+          }
         }
       }
     ]
@@ -96,7 +136,7 @@ resource newVirtualMachine 'Microsoft.Compute/virtualMachines@2019-07-01' = {
   }
 }
 
-resource newVMDomainJoin 'Microsoft.Compute/virtualMachines/extensions@2019-07-01' = {
+resource newVMDomainJoin 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
   name: '${virtualMachineName}/DomainJoin'
   location: location
   properties: {
@@ -105,23 +145,29 @@ resource newVMDomainJoin 'Microsoft.Compute/virtualMachines/extensions@2019-07-0
     typeHandlerVersion: '1.0'
     autoUpgradeMinorVersion: true
   }
+  dependsOn:[
+    newVirtualMachine
+  ]
 }
 
-resource newVMWinRM 'Microsoft.Compute/virtualMachines/extensions@2019-07-01' = {
+resource newVMWinRM 'Microsoft.Compute/virtualMachines/extensions@2022-08-01' = {
   name: '${virtualMachineName}/WinRM'
   location: location
   properties: {
-    publisher: 'Microsoft.Compute'
+    publisher:'Microsoft.Compute'
     type: 'CustomScriptExtension'
     typeHandlerVersion: '1.10'
     autoUpgradeMinorVersion: true
     settings: {
       fileUris: [
-        'https://github.com/simonthurman/provision-avd/tree/main/Configuration/Configuration.ps1'
+        'https://github.com/simonthurman/provision-avd/blob/main/Configuration/'
       ]
     }
     protectedSettings: {
-      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File Configuration.ps1'
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -File Configure.ps1'
     }
   }
+  dependsOn: [
+    newVMDomainJoin
+  ]
 }

@@ -37,7 +37,7 @@ module newApplicationGroup 'ApplicationGroup.bicep' = {
     location: location
   }
   dependsOn: [
-    newDesktopVirtualization
+    newVirtualMachine
   ]
 }
 
@@ -49,6 +49,6 @@ module newWorkspace 'Workspace.bicep' = {
     appGroupRef: '/subscriptions/c9eb6230-f475-4022-b04d-fe5a3d637812/resourcegroups/myRG/providers/Microsoft.DesktopVirtualization/applicationgroups/myApplicationGroup'
   }
   dependsOn: [
-    newDesktopVirtualization
+    newApplicationGroup
   ]
 }
